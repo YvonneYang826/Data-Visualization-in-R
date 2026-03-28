@@ -1,0 +1,545 @@
+---
+title: "Data Visualization in R"
+format: html
+editor: visual
+---
+
+## Static Visualization: ggplot2
+```{r}
+# install.packages("library_name")
+library(ggplot2)
+data(Theoph)
+```
+
+### ggplot()
+ggplot() is the foundation of generating a plot in ggplot environment.
+
+However, the code below won't show any plot because we haven't defined any type of plots we want. 
+```{r}
+ggplot(Theoph, aes(x = Time, y = conc))
+```
+
+### geom_*()
+
+We can use geom_*() to define geometric objects that can be placed on a graph. 
+
+Example: scatterplot of drug concentration over time.
+```{r}
+ggplot(Theoph, aes(x = Time, y = conc)) +
+  geom_point()
+```
+
+#### Add color, size, and alpha
+color - change the color of the plot
+alpha - transparency ranges from 0 (completely transparent) to 1 (completely opaque)
+size - size of the dot
+```{r}
+ggplot(Theoph, aes(x = Time, y = conc)) +
+  geom_point(color = "steelblue", ## change the color of the dots
+             alpha = 0.7, ## transparency
+             size = 2 ) ## size of the dots
+```
+
+### geom_smooth()
+
+This function adds a line of best fit of the graph.
+```{r}
+ggplot(Theoph, aes(x = Time, y = conc)) +
+  geom_point(color = "steelblue", alpha = 0.6, size = 2) +
+  geom_smooth()
+```
+
+#### Adjust line types, thickness, color, and confidence interval
+
+method - different line types. Common options: loess, lm, etc.
+color - change color for the line
+linewidth - thickness of the line
+se - confidence band around smooth curve
+
+```{r}
+ggplot(Theoph, aes(x = Time, y = conc)) +
+  geom_point(color = "steelblue", 
+             alpha = 0.6, 
+             size = 2) +
+  geom_smooth(method = "loess", ## Line types
+              color = "red", ## Color
+              linewidth = 1.5, ## thickness
+              se = TRUE) ## confidence interval
+```
+### labs()
+
+The label function provides customized labels for the axes and legends. 
+
+title - title of the plot
+subtitle - subtitle of the plot (optional)
+x - x-axis label
+y - y-axis label
+
+```{r}
+ggplot(Theoph, aes(x = Time, y = conc)) +
+  geom_point(color = "steelblue", alpha = 0.6, size = 2) +
+  geom_smooth(se = FALSE) +
+  labs(title = "Drug concentration over time",
+       x = "Time since dose (hours)",
+       y = "Concentration") 
+```
+
+#### finish the graph with a theme
+
+theme_*() has a lot of different choices:
+- theme_light
+- theme_dark
+- theme_classic
+...
+
+```{r}
+ggplot(Theoph, aes(x = Time, y = conc)) +
+  geom_point(color = "steelblue", 
+             alpha = 0.6, 
+             size = 2) +
+  geom_smooth(se = FALSE) +
+  labs(title = "Drug concentration over time",
+       x = "Time since dose (hours)",
+       y = "Concentration") +
+  theme_minimal() ## A minimalistic theme with no background annotations.
+```
+
+### Grouping
+```{r}
+## divide weight into two groups
+Theoph$WtGroup <- ifelse(Theoph$Wt >= median(Theoph$Wt), "Higher weight", "Lower weight")
+
+## use weight as color separation in the ggplot() function
+ggplot(Theoph, aes(x = Time, y = conc, color = WtGroup)) +
+  geom_point(alpha = 0.7)
+```
+
+We can tell that there are now two lines on the graph now.
+```{r}
+## use weight as color separation in the ggplot() function
+ggplot(Theoph, aes(x = Time, y = conc, color = WtGroup)) +
+  geom_point(alpha = 0.7) +
+  geom_smooth(se = FALSE)
+```
+
+#### Special case: Spaghetti plots
+```{r}
+ggplot(Theoph, aes(x = Time, y = conc)) +
+  geom_line()
+```
+```{r}
+ggplot(Theoph, aes(x = Time, y = conc, group = Subject)) +
+  geom_line()
+```
+
+### Scales
+Scales control how values appear on the axes and in the plot. 
+
+Going back to the spaghetti plot, we can adjust the axes and make the plot looks more fit
+```{r}
+ggplot(Theoph, aes(Time, conc, group = Subject)) +
+  geom_line(alpha = 0.3, 
+            color = "gray50") +
+  geom_smooth(aes(group = 1), 
+              se = FALSE, 
+              color = "red")
+```
+Check the range of axes
+```{r}
+range(Theoph$Time)
+range(Theoph$conc)
+```
+
+Adjust the x & y range
+```{r}
+ggplot(Theoph, aes(Time, conc, group = Subject)) +
+  geom_line(alpha = 0.3, 
+            color = "gray50") +
+  geom_smooth(aes(group = 1), 
+              se = FALSE, 
+              color = "red") +
+  scale_x_continuous(breaks = seq(0, 25, 5),
+                     labels = paste0(seq(0, 25, 5), "hr")) +
+  scale_y_continuous(breaks = seq(0, 12, 2),
+                     labels = paste0(seq(0, 12, 2), "mg/L"))
+```
+
+Add the labs
+```{r}
+ggplot(Theoph, aes(Time, conc, group = Subject)) +
+  geom_line(alpha = 0.3, 
+            color = "gray50") +
+  geom_smooth(aes(group = 1), 
+              se = FALSE, 
+              color = "red") +
+  scale_x_continuous(breaks = seq(0, 25, 5)) +
+  scale_y_continuous(breaks = seq(0, 12, 2)) +
+  labs(title = "Drug concentration over time",
+       x = "Time (hours)",
+       y = "Concentration") +
+  theme_minimal()
+```
+
+### Facet
+Facets split a plot into multiple panels to compare groups. 
+
+```{r}
+unique(Theoph$WtGroup)
+```
+
+What if we add weight group as the comparison groups?
+```{r}
+ggplot(Theoph, aes(Time, conc, group = Subject)) +
+  geom_line(alpha = 0.3, 
+            color = "gray50") +
+  geom_smooth(aes(group = 1), 
+              se = FALSE, 
+              color = "red") +
+  facet_wrap(~ WtGroup) +
+  scale_x_continuous(breaks = seq(0, 25, 5)) +
+  scale_y_continuous(breaks = seq(0, 12, 2)) +
+  labs(title = "Drug concentration over time",
+       x = "Time (hours)",
+       y = "Concentration") +
+  theme_minimal()
+```
+Now the plots split into two panels corresponding to the groups we defined. 
+
+#### Other Facet function
+facet_grid() 
+- takes two variables
+- one define rows and one defines column. 
+```{r}
+ggplot(Theoph, aes(Time, conc, group = Subject)) +
+  geom_line(alpha = 0.3) +
+  facet_grid(WtGroup ~ Subject)
+```
+
+facet_null() 
+- no faceting
+- default behavior
+```{r}
+ggplot(Theoph, aes(Time, conc, group = Subject)) +
+  geom_line(alpha = 0.3) +
+  facet_null()
+```
+
+## Hands-on Experience
+### Univariate Graphs
+#### Categorical 
+```{r}
+# install.packages("mosaicData")
+data(Marriage, package = "mosaicData")
+```
+
+##### Bar Chart
+1. Plot the distribution of race using bar chart 
+2. Use ?geom_bar() to see the options we can tune for the graph. Then set the fill as "cornflowerblue" and color as "black".
+3. Add labels to the graph to match the final graph on the powerpoint
+
+We can sort the categories by frequency
+```{r}
+library(dplyr)
+
+## Get the count of each race
+plotdata <- Marriage %>%
+ count(race)
+
+## Use reorder to plot the bars in ascending order
+ggplot(plotdata, aes(x = reorder(race, n), y = n)) + 
+  geom_bar(fill = "cornflowerblue", 
+           color="black",
+           stat="identity") +
+  labs(title  = "Participants by race",
+       x = "Race", 
+       y = "Frequency")
+```
+
+```{r}
+## Use reorder to plot the bars in descending order
+ggplot(plotdata, aes(x = reorder(race, -n), y = n)) + 
+  geom_bar(fill = "cornflowerblue", 
+           color="black",
+           stat="identity") +
+  labs(title  = "Participants by race",
+       x = "Race", 
+       y = "Frequency")
+```
+
+We can also add count on top of each bar to make the graph clearer
+
+geom_text adds the labels, and vjust controls vertical justification. 
+```{r}
+# plot the bars with numeric labels
+ggplot(plotdata, aes(x = race, y = n)) + 
+  geom_bar(fill = "cornflowerblue", 
+           color="black",
+           stat="identity") +
+  geom_text(aes(label = n), vjust=-0.5) +
+  labs(title  = "Participants by race",
+       x = "Race", 
+       y = "Frequency")
+```
+
+Sometimes the plot could have overlapping labels
+```{r}
+ggplot(Marriage, aes(x=officialTitle)) + 
+  geom_bar() +
+  labs(title = "Marriages by officiate",
+       x = "Officiate",
+       y = "Frequency")
+```
+
+We can use the coord_flip() function to flip the x and y axes.
+```{r}
+ggplot(Marriage, aes(x = officialTitle)) + 
+  geom_bar() +
+  labs(title = "Marriages by officiate",
+       x = "",
+       y = "Frequency") +
+  coord_flip()
+```
+
+Or we could also rotate the axis labels
+```{r}
+ggplot(Marriage, aes(x=officialTitle)) + 
+  geom_bar() +
+  labs(x = "",
+       y = "Frequency",
+       title = "Marriages by officiate") +
+  theme(axis.text.x = element_text(angle = 45, 
+                                   hjust = 1))
+```
+
+#### Quantitative 
+##### Histogram
+1. Plot the distribution of age using histogram
+2. Use ?geom_histogram() to see the options we can tune for the graph. 
+- Set the fill as "cornflowerblue" and color as ”white”
+- Set bins = 20
+3. Add labels to the graph to match the final graph shown on the powerpoint
+
+Alternative way of "bins": binwidth
+```{r}
+ggplot(Marriage, aes(x = age)) +
+  geom_histogram(fill = "cornflowerblue", 
+                 color = "white", 
+                 binwidth = 5) + 
+  labs(title="Participants by age", 
+       x = "Age")
+```
+
+We can use a density plot instead of represent quantitative data. 
+```{r}
+ggplot(Marriage, aes(x = age)) +
+  geom_density() + 
+  labs(title = "Participants by age")
+```
+
+##### Density Plot
+If we want to highlight the area under the curve, we can specify it in the fill option
+```{r}
+ggplot(Marriage, aes(x = age)) +
+  geom_density(fill = "indianred3") + 
+  labs(title = "Participants by age")
+```
+
+### Bivariate Graphs
+#### Categorical vs. Categorical
+```{r}
+Theoph$WtGroup <- ifelse(Theoph$Wt >= median(Theoph$Wt),
+                         "High weight", "Low weight")
+
+Theoph$TimeGroup <- ifelse(Theoph$Time <= 10,
+                           "Early", "Late")
+```
+
+### Bivariate Graphs
+#### Categorical vs. Categorical
+```{r}
+Theoph$WtGroup <- ifelse(Theoph$Wt >= median(Theoph$Wt),
+                         "High weight", "Low weight")
+
+Theoph$TimeGroup <- ifelse(Theoph$Time <= 10,
+                           "Early", "Late")
+```
+
+##### Stacked Bar
+Pros:
+- It shows total and composition at the same time
+- efficient on space
+- good for showing part-to-whole relationship
+
+Cons:
+- Hard to compare segements across categories
+- Only the bottom segment is easy to compare
+- Can become cluttered with many groups
+```{r}
+ggplot(Theoph, aes(x = WtGroup, fill = TimeGroup)) +
+  geom_bar(position = "stack")
+```
+
+##### Grouped Bar
+Pros:
+- Best for comparing values across groups
+- Easy to read and interpret
+- Clear separation between categories
+
+Cons:
+- Doesn't sohw total directly
+- Takes more space (more bars if more categories)
+
+```{r}
+ggplot(Theoph, aes(x = WtGroup, fill = TimeGroup)) +
+  geom_bar(position = "dodge")
+```
+
+##### Segmented bar
+Pros: 
+- Clearly shows proportions/percentages
+- Easy to compare relative composition
+- All bars are on the same scale (0-100%)
+
+Cons:
+- Loses information about absolute totals
+- Hard to compare segment sizes
+- Can be misleading if totals matter
+```{r}
+ggplot(Theoph, aes(x = WtGroup, fill = TimeGroup)) +
+  geom_bar(position = "fill")
+```
+
+#### Quantitative vs. Quantitative
+##### Scatterplot
+It's the very first example we've done. 
+```{r}
+ggplot(Theoph, aes(x = Time, y = conc)) +
+  geom_point(color = "steelblue", 
+             alpha = 0.7, 
+             size = 2 )
+```
+
+##### Line Plot
+Spaghetti plot is a special line plot
+```{r}
+ggplot(Theoph, aes(Time, conc, group = Subject)) +
+  geom_line(alpha = 0.3)
+```
+#### Categorical vs Quantitative
+##### Box Plot
+```{r}
+ggplot(Theoph, aes(WtGroup, conc)) +
+  geom_boxplot()
+```
+
+##### Violin Plot
+```{r}
+ggplot(Theoph, aes(WtGroup, conc)) +
+  geom_violin()
+```
+## Interactive Visualization
+### ggplotly()
+```{r}
+library(plotly)
+
+p <- ggplot(Theoph, aes(x = Time, y = conc)) +
+  geom_point(color = "steelblue", 
+             alpha = 0.6, 
+             size = 2) +
+  geom_smooth(method = "loess", 
+              color = "red",
+              linewidth = 1.5,
+              se = FALSE) +
+  labs(title = "Drug concentration over time",
+       x = "Time since dose (hours)",
+       y = "Concentration")
+
+ggplotly(p)
+```
+
+### plot_ly()
+#### Boxplot
+```{r}
+plot_ly(data = Theoph, x = ~WtGroup, y = ~conc, type = "box")
+```
+
+#### Scatterplot
+Plotly
+```{r}
+plot_ly(Theoph, x = ~Time, y = ~conc,
+        type = "scatter", mode = "markers", color = ~WtGroup,
+        text = ~paste("Subject:", Subject,
+                      "<br>Time:", Time,
+                      "<br>Concentration:", conc,
+                      "<br>Weight:", Wt),
+        hoverinfo = "text")
+```
+#### Advanced Plotly with Grouping
+```{r}
+Theoph$WtGroup <- ifelse(Theoph$Wt >= median(Theoph$Wt),
+                         "Higher weight", "Lower weight")
+Theoph$WtGroup <- factor(Theoph$WtGroup, levels = c("Lower weight", "Higher weight"))
+
+plot_ly(data = Theoph, x = ~Time, y = ~conc,
+        type = "scatter", text = ~paste("Subject:", Subject,
+                                        "<br>Time:", Time,
+                                        "<br>Concentration:", conc,
+                                        "<br>Weight:", Wt),
+        hoverinfo = "text",
+        mode = "markers",
+        transforms = list(
+          list(type = "groupby",
+               groups = ~WtGroup,
+               styles = list(list(target = "Lower weight",
+                                  value = list(marker = list(color = "blue"))),
+                             list(target = "Higher weight",
+                                  value = list(marker = list(color = "red")))
+      )
+    )
+  )
+)
+
+```
+#### Advanced Plotly Scatterplot with Animation
+```{r}
+theoph_anim <- Theoph %>%
+  plot_ly(x = ~Time, y = ~conc,
+          color = ~WtGroup, frame = ~Subject,
+          text = ~paste("Subject:", Subject,
+                        "<br>Time:", Time,
+                        "<br>Concentration:", conc),
+    hoverinfo = "text",
+    type = "scatter",
+    mode = "markers")
+
+theoph_anim
+```
+
+
+```{r}
+theoph_anim2 <- theoph_anim %>%
+  animation_opts(1000, easing = "linear", redraw = FALSE)
+
+theoph_anim2
+```
+
+#### Advanced Plotly Scatterplot with Filtering
+```{r}
+## Keep only observations below the average concentration
+plot_ly(data = Theoph, x = ~Time, y = ~conc, 
+        type = "scatter", text = ~paste("Subject:", Subject,
+                                        "<br>Time:", Time,
+                                        "<br>Concentration:", conc),
+        hoverinfo = "text",
+        mode = "markers",
+        transforms = list(list(type = "filter",
+                               target = ~conc,
+                               operation = "<",
+                               value = mean(Theoph$conc))))
+```
+
+#### Try it yourself!
+```{r}
+data(mtcars)
+```
+
